@@ -1,24 +1,49 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { API } from './api/api';
+import { useStyles } from './AppStyle';
+const LazyRacers = lazy(() => import('./components/Racers/Racers'))
+
+export interface User {
+  id: number,
+  name: string,
+  speed: number,
+  color: string,
+  time: number
+}
 
 function App() {
+  const classes = useStyles()
+
+  const [racers, setRacers] = useState<User[]>([])
+  const [next, setNext] = useState('')
+  const [previous, setPrevious] = useState('')
+
+
+  useEffect(() => {
+    API('https://devapi.almurut.com/api/test/racers/?format=json', setNext, setPrevious)
+      .then((data) => setRacers(data))
+  }, [])
+
+  const [isIntersecting, setIsIntersecting] = useState(false);
+
+  useEffect(() => {
+    if (isIntersecting) {
+      API(next, setNext, setPrevious)
+        .then((data) => setRacers((prev: User[]) => [...prev, ...data]))
+    }
+  }, [isIntersecting])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className={classes.container}>
+      <Suspense
+        fallback={<h1>Загрузка...</h1>}
+      >
+        <LazyRacers
+          racers={racers}
+          isIntersecting={isIntersecting}
+          setIsIntersecting={setIsIntersecting}
+        />
+      </Suspense>
     </div>
   );
 }
